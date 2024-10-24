@@ -30,7 +30,7 @@ When you begin the game you will be aske to create a wizard with the following i
 """
 
 #text that displays when the player loses.
-game_over_text = "hath been slain by"
+game_over_text = "slain by"
 
 #text that displays how a foe approaches the wizard.
 combat_text = ["approaches menacingly!",

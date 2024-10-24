@@ -18,9 +18,10 @@ class Monster:
         self.threat = threat
 
 class Game_Status:
-    def __init__(self, z, y, x):
+    def __init__(self, z, y, x, rerolls):
         self.health = z
         self.maxhealth = z
         self.score = y
         self.power = x
         self.r = 0
+        self.rerolls = rerolls

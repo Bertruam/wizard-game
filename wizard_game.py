@@ -16,9 +16,11 @@ game_title = """          _    __________________ _______  _______ _________ ___
                                                                                                                                                                                               
 an ultimate power simulator by Kiefer Noles                                                                                                                                                                                              \n\n\n"""
 
+#List of conditions for player confirmation
 pos_cond = ["yes", "y", "yes", "yse"]
 neg_cond = ["no", "n", "on"]
 
+#List of conditions for player attack confirmation
 subtle_cond = ["subtlety", "subtlet", "subtle", "subtl", "subt", "sub", "su", "s"]
 bomb_cond = ["bombast", "bombas", "bomba", "bomb", "bom", "bo", "b"]
 
@@ -104,8 +106,7 @@ def wizard_maker():
         final_in = input(f"You are {title} {name}, {job} of {school}. Is this correct? ")
         if final_in.lower() in pos_cond:
             char_finished = True
-
-        print("Your journey to arcane mastery begins!")
+            print("Your journey to arcane mastery begins!")
         
     
     return Wizard(name, title, job, school)
@@ -113,6 +114,10 @@ def wizard_maker():
 def main():
     os.system('clear')
     print(game_title)
+    f = open("Masoleum.txt", "a")
+    if os.stat("Masoleum.txt").st_size == 0:
+        f.write("Here lies the dead...\n")
+    f.close()
     menu()
 
 def menu():
@@ -129,11 +134,38 @@ def menu():
                 print(tutorial_text)
                 menu()
             case "3":
-                #menu_check = True
-                print("High Scores Coming Soon")
-                pass
+                menu_check = True
+                f = open("Masoleum.txt", "r")
+                print("\n")
+                print(f"{f.read()}\n")
+                menu()
             case "4":
                 end_program()
+            case _:
+                print("Command Not Found")
+
+def choose_difficulty():
+    print("What difficulty?\n   1) Easy\n   2) Normal\n   3) Hard\n   4) Painful\n")
+    diff_check = False    
+    while diff_check == False:
+        diff_in = input("Please enter the number of the desired command: ")
+        match diff_in:
+            case "1":
+                #Easy
+                diff_check = True
+                return Game_Status(5,0,1,5)
+            case "2":
+                #Normal
+                diff_check = True
+                return Game_Status(3,0,1,3)
+            case "3":
+                #Hard
+                diff_check = True
+                return Game_Status(3,0,2,1)
+            case "4":
+                #Hard
+                diff_check = True
+                return Game_Status(2,0,2,0)
             case _:
                 print("Command Not Found")
 
@@ -142,7 +174,7 @@ def new_game():
     global current_wizard
     global game_stat
     current_wizard = wizard_maker()
-    game_stat = Game_Status(3,0,1) # Update for difficulty later
+    game_stat = choose_difficulty()
     game_loop()
 
 def make_monster():
@@ -150,12 +182,13 @@ def make_monster():
     current_foe = Monster(threat_gen(game_stat.power))
 
 def game_loop():
-    print(f"\nDay {game_stat.score + 1}\n")
+    print(f"\nDay {game_stat.r + 1}\n")
     time.sleep(random.randrange(1, 3))
     make_monster()
     print(f"A {current_foe.name} {combat_text[random.randrange(len(combat_text))]} Its threat is {current_foe.threat}!")
     print("What will you do?")
     battle_check = False
+    spectator = ""
     while battle_check != True:
         bat_input_check = False
         while bat_input_check != True:
@@ -163,26 +196,47 @@ def game_loop():
             if battle_in in subtle_cond:
                 bat_input_check = True
                 print("Subtlety...")
-                battle_system(True)
+                spectator = battle_system(True)
             elif battle_in in bomb_cond:
                 bat_input_check = True
                 print("Bombast!")
-                battle_system(False)
+                spectator = battle_system(False)
             elif battle_in == "status":
                 status_check()
+        if spectator == victory:
+            battle_check = True
 
 # returns current health, current score, current rerolls
 def status_check():
-    print(f"Status: Health - {game_stat.health}/{game_stat.maxhealth} Score - {game_stat.score}")
-    pass
+    print(f"Status: Health - {game_stat.health}/{game_stat.maxhealth} Score - {game_stat.score} Rerolls - {game_stat.rerolls}")
 
-def entomb():
-    pass #add dead character to a mortuary list
+def entomb(obit, comment):
+    f = open("Masoleum.txt", "a")
+    if comment != "":
+        f.write(f"\n Here lies {obit}\n'{comment}'")
+    else:
+        f.write(f"\n Here lies {obit}")
+    f.close
 
 def game_over():
-    obituary = f"{current_wizard.true_name} {game_over_text} {current_foe.name} on the {game_stat.score + 1} day of their journey!"
+    print("Deathblow!")
+    obituary = f"Here lies {current_wizard.true_name} {game_over_text} a {current_foe.name} on day {game_stat.score + 1} of their journey!"
     print(obituary)
-    #entomb(obituary)
+    do_comment = input("Would you like to leave a comment? (Yes) or (N)o: ")
+    if do_comment in pos_cond:
+        com_check = False
+        while com_check == False:
+            my_comment = input("Write your comment here(Comment will be automatically placed in quotation)>>")
+            name_in = input(f"{my_comment}, is this correct? (Yes) or (N)o: ")
+            if name_in.lower() in pos_cond:
+                com_check = True
+                entomb(obituary, my_comment)
+            elif name_in.lower() in neg_cond:
+                print("Reset")
+            else:
+                print("<<Command Not Recognised>>")
+    else:
+        entomb(obituary, "")
     #high score check goes here
     menu()
 
@@ -193,6 +247,11 @@ def end_program():
 def power_increses():
     game_stat.power += 1
     print(power_increase_text)
+    if(game_stat.health < game_stat.maxhealth):
+        print("Thoust heals one wound!\n")
+        game_stat.health += 1
+    print("Thoust hast earned a reroll!")
+    game_stat.rerolls += 1
     time.sleep(2)
     game_loop()
 
@@ -202,19 +261,28 @@ def battle_system(tact):
     #subtlety
     if (tact == True and checkem < current_foe.threat) or (tact == False and checkem > current_foe.threat):
         victory()
+        return "victory"
     elif checkem == current_foe.threat:
         print("You clash spectacularly!")
     else:
-        injury()
+        if game_stat.rerolls > 0:
+            rerolling = input(f"You rolled a {checkem} Do you wish to reroll? ")
+            if rerolling in pos_cond:
+                game_stat.rerolls -= 1
+                battle_system(tact)
+            else:
+                injury()
+        else:
+            injury()
 
 def victory():
     print(victory_text[random.randrange(len(victory_text))])
     game_stat.score += 1
     print("Current Score: " + str(game_stat.score))
-    #if (game_stat.score // 10) == 0:
-    #    power_increses()
-    #else:
-    game_loop()
+    if (game_stat.score % 10) == 0:
+        power_increses()
+    else:
+        game_loop()
 
 def injury():
     print("Thou are harmed!")
